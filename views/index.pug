@@ -1,5 +1,28 @@
 extends layout
 
 block content
-  h1= title
-  p Welcome to #{title}
+  div(class='row')
+        div(class='col-md-6')
+          h2= 'ODK Aggregate Form Submission View'
+  br
+  div(class='container')
+    form(action='/submit', method='POST')
+      div(class='row')
+        div(class='col-md-6')
+          label(class='form-label', for='form_id')
+            | Form Id
+            span(class='text-danger')='*'
+          input(id='form_id',type='text', name='form_id', value='', class='form-control', required)
+      br
+      div(class='row')
+        div(class='col-md-6')
+          label(class='form-label', for='uuid')
+            | Instance UUID
+            span(class='text-danger')='*'
+          input(id='uuid',type='text', name='uuid', value='', class='form-control', required,
+            pattern='^uuid:[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$',
+            placeholder='uuid:05352d16-8bf1-4f6e-9892-d038374310db')
+      br
+      div(class='row')
+        div(class='col-md-6') 
+          input(type='submit', value='View', class='btn btn-primary')
