@@ -37,9 +37,42 @@ router.post('/submit', function(req, res, next) {
 
           res.send(result);
           return;
+        } else {
+          res.status(400);
+          if(error){
+            res.render('app_error', {message : error.message});
+          } else {
+            var error_message = '';
+            switch(response.statusCode){
+              case 401:
+                error_message = 'Invalid Username or Password used for the ODK Server';
+                break;
+              case 500:
+                error_message = 'Invalid submission uuid';
+                break;
+            }
+            res.render('app_error', {message : error_message});
+          }
         }
 
       });
+    } else {    
+      res.status(400);
+      if(error){
+        console.log(error);
+        res.render('app_error', {message : error.message});
+      } else {
+        var error_message = '';
+        switch(response.statusCode){
+          case 401:
+            error_message = 'Invalid Username or Password used for the ODK Server';
+            break;
+          case 404:
+            error_message = 'Invalid Form Id';
+            break;
+        }
+        res.render('app_error', {message : error_message});
+      }     
     }
   });
 });
