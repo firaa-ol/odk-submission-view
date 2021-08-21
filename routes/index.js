@@ -3,6 +3,7 @@ var config = require('../config');
 var router = express.Router();
 var createError = require('http-errors');
 var request = require('request');
+var transformer = require('enketo-transformer');
 
 
 
@@ -15,6 +16,9 @@ router.get('/', function(req, res, next) {
 router.post('/submit', function(req, res, next) {
   var formId = req.body.form_id;
   var submissionUuid = req.body.uuid;
+  var formData = '';
+  var submissionData = '';
+  var transformationResult = null;
 
   if(!formId || !submissionUuid){
     console.log('here');
@@ -26,16 +30,17 @@ router.post('/submit', function(req, res, next) {
   var submissionDataPath = '/view/downloadSubmission?formId='+ formId + encodeURIComponent('[@version=null]') + 
     '/data' + encodeURIComponent('[@key='+ submissionUuid +']');
 
-  request.get(getServerOption(formXmlPath), function(error, response, body){
-    result = "";
+  request.get(getServerOption(formXmlPath), async function(error, response, body){
+    
     if (!error && response.statusCode == 200){
-      result = body;
+      formData = body;
+      transformationResult = await transformer.transform({xform : formData});
 
       request.get(getServerOption(submissionDataPath), function(error, response, body){
         if (!error && response.statusCode == 200){
-          result += body;
+          submissionData = body;
 
-          res.send(result);
+          res.send(transformationResult);
           return;
         } else {
           res.status(400);
