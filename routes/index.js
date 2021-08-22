@@ -4,7 +4,7 @@ var router = express.Router();
 var createError = require('http-errors');
 var request = require('request');
 var transformer = require('enketo-transformer');
-
+var libxmljs = require("libxmljs");
 
 
 
@@ -39,8 +39,9 @@ router.post('/submit', function(req, res, next) {
       request.get(getServerOption(submissionDataPath), function(error, response, body){
         if (!error && response.statusCode == 200){
           submissionData = body;
-
-          res.send(transformationResult);
+          var parsedSubmission = parseSubmission(submissionData, formId);
+        
+          res.send(parsedSubmission);
           return;
         } else {
           res.status(400);
@@ -91,6 +92,13 @@ function getServerOption(path){
         'sendImmediately': false
     }
   };
+}
+
+function parseSubmission(data, formId){
+  var xmlDoc = libxmljs.parseXmlString(data);
+  var dataElt = xmlDoc.get("//*[@id='"+ formId+"']");
+
+  return dataElt.toString();
 }
 
 module.exports = router;
