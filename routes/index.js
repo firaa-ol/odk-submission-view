@@ -41,8 +41,12 @@ router.post('/submit', function(req, res, next) {
           submissionData = body;
           var parsedSubmission = parseSubmission(submissionData, formId);
         
-          res.send(parsedSubmission);
-          return;
+          res.render('form-view', { odkData : {
+            form: transformationResult.form.replace(/(\r\n|\n|\r)/gm, ""),
+            model: transformationResult.model.replace(/(\r\n|\n|\r)/gm, ""),
+            instance: parsedSubmission.replace(/(\r\n|\n|\r)/gm, "")
+          }});
+          
         } else {
           res.status(400);
           if(error){
@@ -97,7 +101,10 @@ function getServerOption(path){
 function parseSubmission(data, formId){
   var xmlDoc = libxmljs.parseXmlString(data);
   var dataElt = xmlDoc.get("//*[@id='"+ formId+"']");
-
+  // enketo-core will not parse the xml if these attributes are not set
+  dataElt.attr("xmlns", "http://opendatakit.org/submissions");
+  dataElt.attr("xmlns:orx", "http://openrosa.org/xforms");
+  console.log(dataElt.toString());
   return dataElt.toString();
 }
 
