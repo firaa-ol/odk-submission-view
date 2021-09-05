@@ -1,0 +1,19 @@
+extends layout
+
+block content
+    script(src='/scripts/dist/bundle.js')
+    link(rel='stylesheet', href='/stylesheets/grid.css')
+    div(class='main')
+        div(id='form-container')
+        form(class='or')
+        section(class='form-footer end')
+            div(class='enketo-power')
+                | Powered By 
+            a(href='https://enketo.org' title='enketo.org website')
+                img(src='https://enketo.org/media/images/logos/enketo_bare_150x56.png',alt='enketo logo')
+    script.
+        window.onload = function() {
+            EntryPoint.buildEnketoForm("#{odkData.form}", 
+            "#{odkData.model}",
+            "#{odkData.instance}");
+        };
