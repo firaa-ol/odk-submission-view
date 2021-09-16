@@ -13,6 +13,18 @@ router.get('/', function(req, res, next) {
   res.render('index', { title: 'Express' });
 });
 
+router.get('/file/:encodedUrl/:filename', function(req, res, next) {
+  var encodedUrl = req.params.encodedUrl;
+  if(encodedUrl){
+    var decodedUrl = Buffer.from(encodedUrl, 'base64').toString('ascii');
+    request.get(getServerOption(decodedUrl), async function(error, response, body){
+      res.set('Content-Type',  "application/octet-stream");
+      res.set('Content-Disposition', "attachment; filename="+ req.params.filename);
+      res.send(body);
+    });
+  }
+});
+
 router.post('/submit', function(req, res, next) {
   var formId = req.body.form_id;
   var submissionUuid = req.body.uuid;
@@ -21,14 +33,14 @@ router.post('/submit', function(req, res, next) {
   var transformationResult = null;
 
   if(!formId || !submissionUuid){
-    console.log('here');
     next(createError(500));
     return;
   }
 
-  var formXmlPath = '/www/formXml?formId='+formId;
-  var submissionDataPath = '/view/downloadSubmission?formId='+ formId + encodeURIComponent('[@version=null]') + 
+  var formXmlPath = config.odk_server_url + '/www/formXml?formId='+formId;
+  var submissionDataPath = config.odk_server_url + '/view/downloadSubmission?formId='+ formId + encodeURIComponent('[@version=null]') + 
     '/data' + encodeURIComponent('[@key='+ submissionUuid +']');
+  console.log(submissionDataPath);
 
   request.get(getServerOption(formXmlPath), async function(error, response, body){
     
@@ -39,7 +51,7 @@ router.post('/submit', function(req, res, next) {
       request.get(getServerOption(submissionDataPath), function(error, response, body){
         if (!error && response.statusCode == 200){
           submissionData = body;
-          var parsedSubmission = parseSubmission(submissionData, formId);
+          var parsedSubmission = parseSubmission(submissionData, formId, req.protocol + '://' + req.get('host'));
         
           res.render('form-view', { odkData : {
             form: transformationResult.form.replace(/(\r\n|\n|\r)/gm, ""),
@@ -89,7 +101,7 @@ router.post('/submit', function(req, res, next) {
 
 function getServerOption(path){
   return options = {
-    'url': config.odk_server_url + path,
+    'url': path,
     'auth': {
         'user': config.odk_username,
         'pass': config.odk_password,
@@ -98,13 +110,24 @@ function getServerOption(path){
   };
 }
 
-function parseSubmission(data, formId){
+function parseSubmission(data, formId, serverUrl){
   var xmlDoc = libxmljs.parseXmlString(data);
   var dataElt = xmlDoc.get("//*[@id='"+ formId+"']");
   // enketo-core will not parse the xml if these attributes are not set
   dataElt.attr("xmlns", "http://opendatakit.org/submissions");
   dataElt.attr("xmlns:orx", "http://openrosa.org/xforms");
-  console.log(dataElt.toString());
+  var mediaFileElts = xmlDoc.find("//*[name()='mediaFile']");
+  for(var i= 0; i < mediaFileElts.length; i++){
+    var fileNameElt = mediaFileElts[i].childNodes().find(c => c.name() == 'filename');
+    var matchingTags = dataElt.find("//*[text()='"+ fileNameElt.text() +"']");
+
+    for(var j=0; j < matchingTags.length; j++){
+      var fileUrl = mediaFileElts[i].childNodes().find(c => c.name() == 'downloadUrl').text();
+      matchingTags[j] = matchingTags[j].text(serverUrl + "/file/"+ Buffer.from(fileUrl).toString('base64') 
+          + "/" + fileNameElt.text());
+    }
+
+  }
   return dataElt.toString();
 }
 
