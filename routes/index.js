@@ -40,15 +40,18 @@ router.post('/submit', function(req, res, next) {
   }
 
   var formXmlPath = config.odk_server_url + '/www/formXml?formId='+formId;
-  var submissionDataPath = config.odk_server_url + '/view/downloadSubmission?formId='+ formId + encodeURIComponent('[@version=null]') + 
-    '/data' + encodeURIComponent('[@key='+ submissionUuid +']');
-  console.log(submissionDataPath);
 
   request.get(getServerOption(formXmlPath), async function(error, response, body){
     
     if (!error && response.statusCode == 200){
       formData = body;
+      
       transformationResult = await transformer.transform({xform : formData});
+      var modelDoc = libxmljs.parseXmlString(transformationResult.model); 
+      var rootDataTagName = modelDoc.get("//*[@id='"+ formId+"']").name();
+
+      var submissionDataPath = config.odk_server_url + '/view/downloadSubmission?formId='+ formId + encodeURIComponent('[@version=null]') + 
+      '/' + rootDataTagName + encodeURIComponent('[@key='+ submissionUuid +']');
 
       request.get(getServerOption(submissionDataPath), function(error, response, body){
         if (!error && response.statusCode == 200){
