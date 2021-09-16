@@ -17,7 +17,9 @@ router.get('/file/:encodedUrl/:filename', function(req, res, next) {
   var encodedUrl = req.params.encodedUrl;
   if(encodedUrl){
     var decodedUrl = Buffer.from(encodedUrl, 'base64').toString('ascii');
-    request.get(getServerOption(decodedUrl), async function(error, response, body){
+    var option = getServerOption(decodedUrl);
+    option.encoding = null;
+    request.get(option, async function(error, response, body){
       res.set('Content-Type',  "application/octet-stream");
       res.set('Content-Disposition', "attachment; filename="+ req.params.filename);
       res.send(body);
